@@ -1,0 +1,219 @@
+@startuml TechHub_Object_Diagram
+
+title TechHub E-Commerce - Object Diagram (Runtime Instance Snapshot)
+
+' Customer User Instance
+object ":User (Customer)" as user1 {
+    _id = "507f1f77bcf86cd799439011"
+    name = "John Doe"
+    email = "john.doe@example.com"
+    password = "$2b$10$XYZ..." (hashed)
+    phone = "+1-555-0123"
+    address = "123 Main St, New York, NY 10001"
+    answer = "blue" (security answer)
+    role = 0 (customer)
+    createdAt = "2025-01-15T10:30:00Z"
+    updatedAt = "2025-01-20T14:22:00Z"
+}
+
+' Admin User Instance
+object ":User (Admin)" as admin1 {
+    _id = "507f1f77bcf86cd799439012"
+    name = "Sarah Admin"
+    email = "admin@techhub.com"
+    password = "$2b$10$ABC..." (hashed)
+    phone = "+1-555-9999"
+    address = "TechHub HQ, San Francisco, CA"
+    answer = "tech2025" (security answer)
+    role = 1 (admin)
+    createdAt = "2024-12-01T08:00:00Z"
+    updatedAt = "2025-01-25T16:45:00Z"
+}
+
+' Category Instances
+object ":Category" as cat1 {
+    _id = "507f1f77bcf86cd799439020"
+    name = "Electronics"
+    slug = "electronics"
+}
+
+object ":Category" as cat2 {
+    _id = "507f1f77bcf86cd799439021"
+    name = "Laptops"
+    slug = "laptops"
+}
+
+object ":Category" as cat3 {
+    _id = "507f1f77bcf86cd799439022"
+    name = "Accessories"
+    slug = "accessories"
+}
+
+' Product Instances
+object ":Product" as prod1 {
+    _id = "507f1f77bcf86cd799439030"
+    name = "Gaming Laptop Pro 15"
+    slug = "gaming-laptop-pro-15"
+    description = "High-performance gaming laptop with RGB keyboard..."
+    keywords = ["gaming", "laptop", "rgb", "performance", "nvidia"]
+    price = 1499.99
+    category = "507f1f77bcf86cd799439021" (ref: Laptops)
+    quantity = 25
+    photo.data = <Buffer ...>
+    photo.contentType = "image/jpeg"
+    shipping = true
+    createdAt = "2025-01-10T12:00:00Z"
+    updatedAt = "2025-01-28T09:15:00Z"
+}
+
+object ":Product" as prod2 {
+    _id = "507f1f77bcf86cd799439031"
+    name = "Wireless Gaming Mouse"
+    slug = "wireless-gaming-mouse"
+    description = "Ergonomic wireless gaming mouse with 16000 DPI..."
+    keywords = ["mouse", "wireless", "gaming", "ergonomic", "rgb"]
+    price = 79.99
+    category = "507f1f77bcf86cd799439022" (ref: Accessories)
+    quantity = 150
+    photo.data = <Buffer ...>
+    photo.contentType = "image/png"
+    shipping = true
+    createdAt = "2025-01-12T14:30:00Z"
+    updatedAt = "2025-01-28T11:20:00Z"
+}
+
+object ":Product" as prod3 {
+    _id = "507f1f77bcf86cd799439032"
+    name = "Mechanical Keyboard RGB"
+    slug = "mechanical-keyboard-rgb"
+    description = "Full-size mechanical keyboard with Cherry MX switches..."
+    keywords = ["keyboard", "mechanical", "rgb", "cherry", "gaming"]
+    price = 129.99
+    category = "507f1f77bcf86cd799439022" (ref: Accessories)
+    quantity = 75
+    photo.data = <Buffer ...>
+    photo.contentType = "image/jpeg"
+    shipping = true
+    createdAt = "2025-01-08T10:00:00Z"
+    updatedAt = "2025-01-27T16:00:00Z"
+}
+
+object ":Product" as prod4 {
+    _id = "507f1f77bcf86cd799439033"
+    name = "USB-C Charging Cable"
+    slug = "usb-c-charging-cable"
+    description = "Fast charging USB-C cable, 6ft length..."
+    keywords = ["usb", "cable", "charging", "usbc", "fast"]
+    price = 14.99
+    category = "507f1f77bcf86cd799439022" (ref: Accessories)
+    quantity = 0 (Out of Stock)
+    photo.data = <Buffer ...>
+    photo.contentType = "image/jpeg"
+    shipping = true
+    createdAt = "2025-01-05T09:00:00Z"
+    updatedAt = "2025-01-29T13:45:00Z"
+}
+
+' Payment Instance
+object ":Payment" as payment1 {
+    transactionId = "txn_1234567890ABCDEF"
+    amount = 1709.97
+    currency = "USD"
+    status = "succeeded"
+    method = "credit_card"
+    card_last4 = "4242"
+    card_brand = "Visa"
+    processedAt = "2025-01-30T10:25:30Z"
+}
+
+' Order Instance
+object ":Order" as order1 {
+    _id = "507f1f77bcf86cd799439040"
+    products = ["507f1f77bcf86cd799439030", "507f1f77bcf86cd799439031", "507f1f77bcf86cd799439032"]
+    payment = <Payment Object>
+    buyer = "507f1f77bcf86cd799439011" (ref: User John Doe)
+    status = "Processing"
+    createdAt = "2025-01-30T10:25:35Z"
+    updatedAt = "2025-01-30T14:10:00Z"
+}
+
+' Relationships
+cat2 "1" -- "1..*" prod1 : contains
+cat3 "1" -- "1..*" prod2 : contains
+cat3 "1" -- "1..*" prod3 : contains
+cat3 "1" -- "1..*" prod4 : contains
+
+user1 "1" -- "0..*" order1 : places
+order1 "1" *-- "1..*" prod1 : contains
+order1 "1" *-- "1..*" prod2 : contains
+order1 "1" *-- "1..*" prod3 : contains
+order1 "1" -- "1" payment1 : paid via
+
+admin1 .. order1 : manages
+
+note top of user1
+  **Customer Account**
+  Regular user (role = 0)
+  Can browse, purchase, track orders
+  Registered: Jan 15, 2025
+end note
+
+note top of admin1
+  **Admin Account**
+  Administrator (role = 1)
+  Can manage products, categories,
+  orders, and users
+end note
+
+note right of prod1
+  **In Stock Product**
+  Available for purchase
+  25 units available
+  High-demand gaming laptop
+end note
+
+note right of prod4
+  **Out of Stock Product**
+  quantity = 0
+  Not available for purchase
+  Needs restocking
+end note
+
+note bottom of order1
+  **Active Order**
+  Status: Processing
+  Contains 3 products
+  Total: $1,709.97
+  Awaiting shipment
+end note
+
+note bottom of payment1
+  **Payment via Braintree**
+  Credit card transaction
+  Processed successfully
+  Linked to Order #040
+end note
+
+legend right
+  **Object Diagram Legend:**
+  • Shows runtime instances of classes
+  • Actual values at specific point in time
+  • Snapshot taken: Jan 30, 2025 @ 14:30 UTC
+  • All ObjectIds and data are examples
+
+  **Key Observations:**
+  1. John Doe (customer) placed order #040
+  2. Order contains 3 products totaling $1,709.97
+  3. Payment processed via Braintree gateway
+  4. Order status changed to "Processing" by admin
+  5. One product (USB-C Cable) is out of stock
+
+  **System State:**
+  • 2 Users (1 customer, 1 admin)
+  • 3 Categories (Electronics, Laptops, Accessories)
+  • 4 Products (1 out of stock)
+  • 1 Active Order (Processing)
+  • 1 Successful Payment
+endlegend
+
+@enduml

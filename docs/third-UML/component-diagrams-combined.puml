@@ -1,0 +1,494 @@
+@startuml Frontend_Components
+
+title TechHub E-Commerce - Frontend Component Architecture
+
+package "React Application" {
+    component [App.js] as app
+    component [index.js] as index
+
+    package "Pages" {
+        component [HomePage] as home
+        component [ProductDetails] as productPage
+        component [CartPage] as cart
+        component [Login] as login
+        component [Register] as register
+        component [AdminDashboard] as adminDash
+        component [UserDashboard] as userDash
+    }
+
+    package "Components" {
+        package "Layout" {
+            component [Header] as header
+            component [Footer] as footer
+            component [Layout] as layout
+            component [AdminMenu] as adminMenu
+            component [UserMenu] as userMenu
+        }
+
+        package "Form" {
+            component [SearchInput] as search
+            component [CategoryForm] as categoryForm
+        }
+
+        package "Routes" {
+            component [PrivateRoute] as privateRoute
+            component [AdminRoute] as adminRoute
+        }
+
+        component [Spinner] as spinner
+    }
+
+    package "Context" {
+        component [AuthContext] as authContext
+        component [CartContext] as cartContext
+        component [SearchContext] as searchContext
+    }
+
+    package "Hooks" {
+        component [useCategory] as useCategory
+    }
+
+    package "Config" {
+        component [axios.js] as axiosConfig
+    }
+}
+
+' Dependencies
+index --> app : renders
+app --> home
+app --> productPage
+app --> cart
+app --> login
+app --> register
+app --> adminDash
+app --> userDash
+
+home --> layout
+productPage --> layout
+cart --> layout
+
+layout --> header
+layout --> footer
+
+adminDash --> adminMenu
+userDash --> userMenu
+
+header --> search
+
+app --> privateRoute
+app --> adminRoute
+
+privateRoute --> spinner
+adminRoute --> spinner
+
+app --> authContext : provides
+app --> cartContext : provides
+app --> searchContext : provides
+
+home --> useCategory : uses
+productPage --> useCategory : uses
+
+authContext --> axiosConfig : configures
+cartContext --> axiosConfig : uses
+searchContext --> axiosConfig : uses
+
+note right of authContext
+  **Auth Context:**
+  • User state
+  • JWT token
+  • Loading state
+  • localStorage sync
+  • Axios header config
+end note
+
+note right of cartContext
+  **Cart Context:**
+  • Cart items array
+  • localStorage persistence
+  • Add/remove items
+  • Calculate total
+end note
+
+note right of axiosConfig
+  **Axios Configuration:**
+  • Base URL setup
+  • Request interceptor
+  • Response interceptor
+  • Global error handling
+  • 401 redirect logic
+end note
+
+@enduml
+
+@startuml Backend_Components
+
+title TechHub E-Commerce - Backend Component Architecture
+
+package "Express Server" {
+    component [index.js] as server
+
+    package "Routes" {
+        component [authRoutes.js] as authRoutes
+        component [productRoutes.js] as productRoutes
+        component [categoryRoutes.js] as categoryRoutes
+    }
+
+    package "Controllers" {
+        component [authController.js] as authCtrl
+        component [productController.js] as productCtrl
+        component [categoryController.js] as categoryCtrl
+    }
+
+    package "Middlewares" {
+        component [authmiddleware.js] as authMiddleware
+        component [CORS] as cors
+        component [express-formidable] as formidable
+    }
+
+    package "Models" {
+        component [userModel.js] as userModel
+        component [productModel.js] as productModel
+        component [categoryModel.js] as categoryModel
+        component [orderModel.js] as orderModel
+    }
+
+    package "Helpers" {
+        component [authHelper.js] as authHelper
+        component [jaccard.js] as jaccard
+    }
+
+    package "Config" {
+        component [db.js] as dbConfig
+    }
+}
+
+database "MongoDB" as mongo
+
+cloud "Braintree" as braintree
+
+' Server setup
+server --> dbConfig : connects
+dbConfig --> mongo : Mongoose
+
+server --> cors : uses
+server --> authRoutes : mounts
+server --> productRoutes : mounts
+server --> categoryRoutes : mounts
+
+' Auth flow
+authRoutes --> authMiddleware : protected routes
+authRoutes --> authCtrl : delegates
+authCtrl --> authHelper : uses
+authCtrl --> userModel : queries
+authCtrl --> orderModel : queries
+userModel --> mongo : CRUD
+
+' Product flow
+productRoutes --> authMiddleware : admin routes
+productRoutes --> formidable : file upload
+productRoutes --> productCtrl : delegates
+productCtrl --> productModel : queries
+productCtrl --> jaccard : similarity
+productCtrl --> braintree : payment
+productModel --> mongo : CRUD
+
+' Category flow
+categoryRoutes --> authMiddleware : admin routes
+categoryRoutes --> categoryCtrl : delegates
+categoryCtrl --> categoryModel : queries
+categoryModel --> mongo : CRUD
+
+' Order flow
+orderModel --> productModel : references
+orderModel --> userModel : references
+
+note right of authMiddleware
+  **Auth Middleware:**
+  • requireSignIn:
+    Verifies JWT token
+  • isAdmin:
+    Checks role = 1
+end note
+
+note right of authHelper
+  **Auth Helper:**
+  • hashPassword()
+  • comparePassword()
+  • Uses Bcrypt
+end note
+
+note right of jaccard
+  **Jaccard Helper:**
+  • tokenize()
+  • calculateSimilarity()
+  • jaccardDetailed()
+  • Product recommendations
+end note
+
+note right of formidable
+  **File Upload:**
+  • Parses multipart/form-data
+  • Handles image uploads
+  • Size validation
+end note
+
+@enduml
+
+@startuml Full_System_Components
+
+title TechHub E-Commerce - Complete System Components
+
+package "Client (Browser)" {
+    [React App] as reactApp
+    [React Router] as router
+    [Axios Client] as axios
+    [LocalStorage] as storage
+}
+
+package "Server (Express)" {
+    [API Routes] as routes
+    [Middleware Pipeline] as middleware
+    [Controllers] as controllers
+    [Models] as models
+    [Helpers] as helpers
+}
+
+package "Database" {
+    database "MongoDB Atlas" as db
+}
+
+package "External Services" {
+    [Braintree API] as braintree
+    [SMTP Server] as smtp
+}
+
+' Client internal
+reactApp --> router : navigation
+reactApp --> axios : HTTP calls
+reactApp --> storage : persistence
+
+' Client to Server
+axios --> routes : REST API
+
+' Server internal
+routes --> middleware : request processing
+middleware --> controllers : validated requests
+controllers --> models : data operations
+controllers --> helpers : utilities
+
+' Server to Database
+models --> db : Mongoose ODM
+
+' Server to External
+controllers --> braintree : payments
+controllers --> smtp : emails
+
+' Interfaces
+interface "REST API" as restAPI
+interface "Mongoose" as mongooseIface
+interface "Payment API" as paymentAPI
+interface "Email API" as emailAPI
+
+routes -up- restAPI
+axios -down- restAPI
+
+models -down- mongooseIface
+db -up- mongooseIface
+
+controllers -down- paymentAPI
+braintree -up- paymentAPI
+
+controllers -down- emailAPI
+smtp -up- emailAPI
+
+note top of reactApp
+  **Frontend Components:**
+  • Pages (HomePage, ProductDetails, etc.)
+  • UI Components (Header, Footer, etc.)
+  • Context Providers (Auth, Cart, Search)
+  • Custom Hooks (useCategory)
+  • Routing configuration
+end note
+
+note bottom of controllers
+  **Backend Controllers:**
+  • authController: User & auth management
+  • productController: Product & payment
+  • categoryController: Category management
+
+  **Business Logic:**
+  • Validation
+  • Data transformation
+  • Service orchestration
+end note
+
+note bottom of models
+  **Data Models:**
+  • User (authentication, profile)
+  • Product (catalog, inventory)
+  • Category (classification)
+  • Order (transactions)
+
+  **Schema Features:**
+  • Validation rules
+  • Relationships (refs)
+  • Timestamps
+  • Indexes
+end note
+
+@enduml
+
+@startuml Component_Dependencies
+
+title TechHub E-Commerce - Component Dependencies
+
+component [Frontend\nReact App] as frontend
+component [Backend\nExpress Server] as backend
+component [MongoDB\nDatabase] as database
+component [Braintree\nPayment] as payment
+component [Email\nService] as email
+
+interface "HTTP REST API\n/api/v1/*" as httpAPI
+interface "Mongoose ODM\nConnection" as mongooseAPI
+interface "Braintree SDK\nPayment API" as braintreeAPI
+interface "SMTP\nEmail Protocol" as smtpAPI
+
+frontend -down-> httpAPI : uses
+backend -up-> httpAPI : provides
+
+backend -down-> mongooseAPI : uses
+database -up-> mongooseAPI : provides
+
+backend -right-> braintreeAPI : uses
+payment -left-> braintreeAPI : provides
+
+backend -right-> smtpAPI : uses
+email -left-> smtpAPI : provides
+
+note right of httpAPI
+  **REST API Endpoints:**
+
+  **Authentication:**
+  • POST /api/v1/auth/register
+  • POST /api/v1/auth/login
+  • GET /api/v1/auth/user-auth
+  • GET /api/v1/auth/admin-auth
+
+  **Products:**
+  • GET /api/v1/product/get-product
+  • POST /api/v1/product/create-product
+  • GET /api/v1/product/:slug
+  • GET /api/v1/product/related/:pid/:cid
+
+  **Categories:**
+  • GET /api/v1/category/get-category
+  • POST /api/v1/category/create-category
+
+  **Payment:**
+  • GET /api/v1/product/braintree/token
+  • POST /api/v1/product/braintree/payment
+end note
+
+note right of mongooseAPI
+  **Database Operations:**
+  • connect()
+  • find()
+  • findById()
+  • create()
+  • updateOne()
+  • deleteOne()
+  • aggregate()
+end note
+
+note right of braintreeAPI
+  **Payment Operations:**
+  • clientToken.generate()
+  • transaction.sale()
+  • transaction.find()
+end note
+
+@enduml
+
+@startuml Package_Dependencies
+
+title TechHub E-Commerce - Package Dependencies
+
+package "Frontend Dependencies" {
+    [react@18.3.1] as react
+    [react-router-dom@6.29] as router
+    [axios] as axios
+    [antd] as antd
+    [bootstrap@5.3.3] as bootstrap
+    [react-toastify] as toast
+    [braintree-web-drop-in-react] as braintreeDrop
+}
+
+package "Backend Dependencies" {
+    [express] as express
+    [mongoose] as mongoose
+    [jsonwebtoken] as jwt
+    [bcrypt] as bcrypt
+    [braintree] as braintreeSDK
+    [cors] as cors
+    [express-formidable] as formidable
+    [morgan] as morgan
+    [slugify] as slugify
+}
+
+package "Development Dependencies" {
+    [nodemon] as nodemon
+    [concurrently] as concurrently
+}
+
+' Frontend app
+component "React App" as app
+app --> react : uses
+app --> router : uses
+app --> axios : uses
+app --> antd : uses
+app --> bootstrap : uses
+app --> toast : uses
+app --> braintreeDrop : uses
+
+' Backend server
+component "Express Server" as server
+server --> express : uses
+server --> mongoose : uses
+server --> jwt : uses
+server --> bcrypt : uses
+server --> braintreeSDK : uses
+server --> cors : uses
+server --> formidable : uses
+server --> morgan : uses
+server --> slugify : uses
+
+' Development
+component "Dev Environment" as dev
+dev --> nodemon : uses
+dev --> concurrently : uses
+
+note right of react
+  **Frontend Stack:**
+  • React 18.3 (UI library)
+  • Router (navigation)
+  • Axios (HTTP client)
+  • Ant Design (UI components)
+  • Bootstrap (CSS framework)
+  • Toastify (notifications)
+  • Braintree Drop-in (payments)
+end note
+
+note right of express
+  **Backend Stack:**
+  • Express (web framework)
+  • Mongoose (MongoDB ODM)
+  • JWT (authentication)
+  • Bcrypt (password hashing)
+  • Braintree SDK (payments)
+  • CORS (cross-origin)
+  • Formidable (file uploads)
+  • Morgan (logging)
+  • Slugify (URL slugs)
+end note
+
+@enduml

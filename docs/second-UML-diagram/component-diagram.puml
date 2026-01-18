@@ -1,0 +1,43 @@
+@startuml CLZ-MERO Component Diagram
+
+package "Frontend (React)" {
+  [UI Components]
+  [Context (State)]
+  [Pages]
+}
+
+package "Backend (Express)" {
+  [Controllers]
+  [Routes]
+  [Middleware]
+  [Helpers]
+}
+
+database "MongoDB" {
+  [Users Collection]
+  [Products Collection]
+  [Categories Collection]
+  [Orders Collection]
+}
+
+cloud "External Services" {
+  [Braintree Payment]
+}
+
+' Connections
+[UI Components] --> [Routes] : REST API\n(HTTP/JSON)
+[Context (State)] --> [Routes] : REST API
+[Pages] --> [Routes] : REST API
+
+[Routes] --> [Controllers]
+[Controllers] --> [Middleware]
+[Controllers] --> [Helpers]
+
+[Controllers] --> [Users Collection] : Mongoose ODM
+[Controllers] --> [Products Collection] : Mongoose ODM
+[Controllers] --> [Categories Collection] : Mongoose ODM
+[Controllers] --> [Orders Collection] : Mongoose ODM
+
+[Controllers] --> [Braintree Payment] : Payment API
+
+@enduml

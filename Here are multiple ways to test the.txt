@@ -1,0 +1,34 @@
+Here are multiple ways to test the Jaccard similarity implementation:
+
+1. Quick command-line test (already available)
+Run the smoke test script we created:
+
+cmd:
+node "d:\7sem\intern\day28 push on 05-03-2025\clz\scripts\smoke_related.js"
+
+expected output:
+Similarity scores (descending):
+p2 Red sports shoes -> 0.3333333333333333
+p4 Running socks -> 0.18181818181818182
+p1 Blue running shoes -> 0.16666666666666666
+p3 Leather formal shoes -> 0.15384615384615385
+
+2. Test the helper function directly
+Run the Jaccard unit test:
+cmd:
+node "d:\7sem\intern\day28 push on 05-03-2025\clz\scripts\test_jaccard.js"
+
+node "d:\7sem\intern\day28 push on 05-03-2025\clz\scripts\watch_recommendation_demo.js"
+
+This tests basic cases like arrays, strings, and edge cases.
+
+
+
+
+
+
+3. Test via API (with real database)
+Step 1: Start your server
+cmd:
+npm run server
+

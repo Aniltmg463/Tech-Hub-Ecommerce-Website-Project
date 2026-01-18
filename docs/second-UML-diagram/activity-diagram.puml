@@ -1,0 +1,30 @@
+@startuml CLZ-MERO Product Search Activity
+
+|User|
+start
+:Enter search keyword;
+
+|Frontend|
+:Send search request;
+
+|Backend|
+:Receive search query;
+:Perform exact search\n(MongoDB regex);
+
+if (Results found?) then (yes)
+  :Return exact matches;
+else (no)
+  :Apply fuzzy search\n(Fuzzball algorithm);
+  :Calculate similarity scores;
+  :Merge and rank results;
+  :Return fuzzy matches;
+endif
+
+|Frontend|
+:Display results;
+
+|User|
+:View products;
+stop
+
+@enduml

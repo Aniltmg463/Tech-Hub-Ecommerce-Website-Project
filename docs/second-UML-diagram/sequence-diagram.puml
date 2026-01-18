@@ -1,0 +1,27 @@
+@startuml CLZ-MERO Purchase Flow Sequence
+
+actor User
+participant "React Frontend" as Frontend
+participant "Express Backend" as Backend
+participant "MongoDB" as DB
+participant "Braintree" as Payment
+
+User -> Frontend : Add product to cart
+User -> Frontend : Proceed to checkout
+
+Frontend -> Backend : Request payment token
+Backend -> Payment : Generate client token
+Payment --> Backend : Return token
+Backend --> Frontend : Send token
+
+User -> Frontend : Submit payment
+Frontend -> Backend : Process payment
+Backend -> Payment : Charge payment
+Payment --> Backend : Payment success
+
+Backend -> DB : Create order
+DB --> Backend : Order saved
+Backend --> Frontend : Confirmation
+Frontend --> User : Display success
+
+@enduml

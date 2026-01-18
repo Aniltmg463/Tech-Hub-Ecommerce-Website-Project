@@ -1,0 +1,25 @@
+@startuml TechHub_Simple_Architecture
+
+title TechHub E-Commerce - Simple Architecture
+
+node "Client Browser" {
+  component "React Frontend\n(Port 3000)"
+}
+
+node "Web Server" {
+  component "Express Backend\n(Port 8080)"
+}
+
+node "Database Server" {
+  component "MongoDB\n(MongoDB Atlas)"
+}
+
+node "Payment Gateway" {
+  component "Braintree"
+}
+
+"React Frontend\n(Port 3000)" --> "Express Backend\n(Port 8080)" : "HTTP REST API"
+"Express Backend\n(Port 8080)" --> "MongoDB\n(MongoDB Atlas)" : "Mongoose ODM"
+"Express Backend\n(Port 8080)" --> "Braintree" : "Payment Processing"
+
+@enduml

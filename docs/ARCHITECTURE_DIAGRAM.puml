@@ -1,0 +1,117 @@
+@startuml TechHub_Architecture
+
+title TechHub E-Commerce System Architecture
+
+skinparam componentStyle rectangle
+skinparam node {
+    BackgroundColor LightBlue
+    BorderColor DarkBlue
+    FontSize 12
+}
+skinparam component {
+    BackgroundColor LightYellow
+    BorderColor DarkOrange
+    FontSize 11
+}
+skinparam database {
+    BackgroundColor LightGreen
+    BorderColor DarkGreen
+}
+
+node "Client Browser\n(Port 3000)" {
+    component "React Frontend" as frontend {
+        component "UI Components" as ui
+        component "Pages" as pages
+        component "React Router" as router
+        component "Context Providers" as context {
+            component "- Auth Context"
+            component "- Cart Context"
+            component "- Search Context"
+        }
+    }
+}
+
+node "Web Server\n(Port 8080)" {
+    component "Express Backend" as backend {
+        component "API Routes" as routes {
+            component "- /api/v1/auth"
+            component "- /api/v1/category"
+            component "- /api/v1/product"
+        }
+        component "Controllers" as controllers {
+            component "- authController"
+            component "- categoryController"
+            component "- productController"
+        }
+        component "Middlewares" as middleware {
+            component "- JWT Auth"
+            component "- File Upload"
+            component "- CORS"
+        }
+        component "Helpers" as helpers {
+            component "- Password Hash"
+            component "- Jaccard Algorithm"
+        }
+    }
+}
+
+node "Database Server" {
+    database "MongoDB\n(MongoDB Atlas)" as mongodb {
+        component "Collections" as collections {
+            component "- users"
+            component "- products"
+            component "- categories"
+            component "- orders"
+        }
+    }
+}
+
+node "External Services" {
+    component "Braintree\nPayment Gateway" as braintree
+}
+
+' Connections
+frontend -down-> routes : "HTTP REST API\n(Axios)"
+routes -down-> controllers : "Route Handlers"
+controllers -down-> mongodb : "Mongoose ODM"
+controllers -right-> braintree : "Payment Processing"
+controllers --> helpers : "Uses"
+
+' Notes
+note right of frontend
+  **Technology Stack:**
+  - React 18.3.1
+  - React Router 6.29
+  - Axios (HTTP Client)
+  - Ant Design UI
+  - Bootstrap 5.3.3
+  - React Toastify
+end note
+
+note right of backend
+  **Technology Stack:**
+  - Node.js
+  - Express.js
+  - Mongoose ODM
+  - JWT Authentication
+  - Bcrypt Hashing
+  - Express Formidable
+  - Morgan Logger
+end note
+
+note bottom of mongodb
+  **Database:**
+  - MongoDB Atlas (Cloud)
+  - Mongoose Schema
+  - ObjectId References
+  - Buffer Storage (Images)
+end note
+
+note bottom of braintree
+  **Payment Features:**
+  - Token Generation
+  - Transaction Processing
+  - Secure Checkout
+end note
+
+@enduml

@@ -1,0 +1,37 @@
+@startuml CLZ-MERO Class Diagram
+
+' Core Domain Models
+class User {
+  - name: String
+  - email: String
+  - password: String
+  - role: Integer
+  - phone: String
+}
+
+class Product {
+  - name: String
+  - price: Number
+  - description: String
+  - quantity: Integer
+  - photo: Buffer
+}
+
+class Category {
+  - name: String
+  - slug: String
+}
+
+class Order {
+  - products: Array
+  - payment: Object
+  - status: String
+}
+
+' Relationships
+User "1" --> "*" Order : places
+Category "1" --> "*" Product : contains
+Product "*" --> "1" Category : belongs to
+Order "*" --> "*" Product : includes
+
+@enduml

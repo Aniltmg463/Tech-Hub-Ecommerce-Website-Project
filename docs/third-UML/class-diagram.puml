@@ -1,0 +1,218 @@
+@startuml TechHub_Class_Diagram
+
+title TechHub E-Commerce - Object Model (Class Diagram)
+
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor LightYellow
+    BorderColor Black
+    ArrowColor Black
+}
+
+' User Class
+class User {
+    - user_id: ObjectId
+    - name: String
+    - email: String {unique}
+    - password: String {hashed}
+    - phone: String
+    - address: String
+    - answer: String
+    - role: Integer
+    - created_at: DateTime
+    - updated_at: DateTime
+    __
+    + register(): Boolean
+    + login(email, password): Token
+    + updateProfile(data): Boolean
+    + forgotPassword(email, answer, newPassword): Boolean
+    + getOrders(): Order[]
+    + isAdmin(): Boolean
+}
+
+' Category Class
+class Category {
+    - category_id: ObjectId
+    - name: String {unique}
+    - slug: String {unique}
+    - created_at: DateTime
+    - updated_at: DateTime
+    __
+    + create(name): Boolean
+    + update(name): Boolean
+    + delete(): Boolean
+    + getProducts(): Product[]
+}
+
+' Product Class
+class Product {
+    - product_id: ObjectId
+    - name: String
+    - slug: String {unique}
+    - description: String
+    - price: Number
+    - quantity: Integer
+    - photo: Buffer
+    - shipping: Boolean
+    - keywords: String[]
+    - created_at: DateTime
+    - updated_at: DateTime
+    __
+    + create(data, photo): Boolean
+    + update(data): Boolean
+    + delete(): Boolean
+    + getPhoto(): Buffer
+    + calculateSimilarity(otherProduct): Number
+    + getRelatedProducts(category): Product[]
+    + updateStock(quantity): Boolean
+    + isInStock(): Boolean
+}
+
+' Order Class
+class Order {
+    - order_id: ObjectId
+    - buyer_id: ObjectId
+    - payment: Payment
+    - status: OrderStatus
+    - created_at: DateTime
+    - updated_at: DateTime
+    __
+    + create(buyer, products, payment): Boolean
+    + updateStatus(status): Boolean
+    + getOrderItems(): OrderLine[]
+    + calculateTotal(): Number
+    + cancel(): Boolean
+    + getBuyer(): User
+}
+
+' OrderLine Class (Junction Table)
+class OrderLine {
+    - order_line_id: ObjectId
+    - order_id: ObjectId
+    - product_id: ObjectId
+    - quantity: Integer
+    - price_at_purchase: Number
+    __
+    + calculateSubtotal(): Number
+    + getProduct(): Product
+}
+
+' Payment Class (Embedded Object)
+class Payment <<ValueObject>> {
+    - success: Boolean
+    - transaction_id: String
+    - amount: Number
+    - payment_method: String
+    - timestamp: DateTime
+    __
+    + process(amount, paymentMethod): Boolean
+    + refund(): Boolean
+    + getTransactionDetails(): Object
+}
+
+' OrderStatus Enumeration
+enum OrderStatus {
+    NOT_PROCESS
+    PROCESSING
+    SHIPPED
+    DELIVERED
+    CANCELLED
+}
+
+' Helper Classes
+class AuthHelper <<Helper>> {
+    __
+    + {static} hashPassword(password): String
+    + {static} comparePassword(plain, hashed): Boolean
+    + {static} generateToken(user): String
+    + {static} verifyToken(token): User
+}
+
+class JaccardAlgorithm <<Helper>> {
+    __
+    + {static} tokenize(text): String[]
+    + {static} calculateSimilarity(keywords1, keywords2): Number
+    + {static} jaccardDetailed(product1, product2): Object
+    + {static} findSimilarProducts(product, allProducts): Product[]
+}
+
+' Relationships
+
+' User to Order (One-to-Many)
+User "1" -- "0..*" Order : places >
+
+' Category to Product (One-to-Many)
+Category "1" -- "0..*" Product : contains >
+
+' Order to OrderLine (One-to-Many)
+Order "1" *-- "1..*" OrderLine : has >
+
+' Product to OrderLine (One-to-Many)
+Product "1" -- "0..*" OrderLine : included in >
+
+' Order to Payment (Composition)
+Order "1" *-- "1" Payment : contains >
+
+' Order to OrderStatus (Association)
+Order --> OrderStatus : has status
+
+' Product uses JaccardAlgorithm
+Product ..> JaccardAlgorithm : uses
+
+' User uses AuthHelper
+User ..> AuthHelper : uses
+
+' Notes
+note right of User
+  **Role-Based Access Control**
+  role = 0: Regular User
+  role = 1: Admin User
+
+  Admins can manage products,
+  categories, orders, and users.
+end note
+
+note right of Product
+  **Jaccard Similarity**
+  keywords[] array is used to
+  calculate product similarity
+  for recommendations.
+
+  Photos stored as Buffer
+  (binary data in MongoDB).
+end note
+
+note bottom of OrderLine
+  **Junction Table Pattern**
+  Implements many-to-many
+  relationship between
+  Order and Product.
+
+  Stores price_at_purchase to
+  maintain historical accuracy.
+end note
+
+note left of Payment
+  **Value Object Pattern**
+  Embedded within Order.
+  No separate collection.
+
+  Integrated with Braintree
+  payment gateway.
+end note
+
+legend right
+  **Relationship Types:**
+  ──  Association
+  *── Composition (strong)
+  ◇── Aggregation (weak)
+  ..> Dependency
+  ──▷ Inheritance
+
+  **Multiplicity:**
+  1      Exactly one
+  0..*   Zero or more
+  1..*   One or more
+endlegend
+
+@enduml

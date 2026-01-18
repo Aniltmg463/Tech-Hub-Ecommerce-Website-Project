@@ -1,0 +1,135 @@
+@startuml TechHub_Database_Schema
+!define PRIMARY_KEY(x) <b><color:#b8861b><&key></color> x</b>
+!define FOREIGN_KEY(x) <color:#aaaaaa><&key></color> x
+!define COLUMN(x) <color:#efefef><&media-record></color> x
+!define TABLE(x) entity x << (T,#FFAAAA) >>
+
+' Styling
+skinparam linetype ortho
+skinparam roundcorner 10
+skinparam class {
+    BackgroundColor LightYellow
+    BorderColor Black
+    ArrowColor Black
+}
+
+title TechHub E-Commerce Database Schema\nwith Jaccard Algorithm for Product Recommendations
+
+' Users Table
+entity "Users" as users {
+    PRIMARY_KEY(user_id) : ObjectId
+    --
+    COLUMN(name) : String
+    COLUMN(email) : String <<unique>>
+    COLUMN(password) : String <<hashed>>
+    COLUMN(phone) : String
+    COLUMN(address) : String
+    COLUMN(answer) : String <<security question>>
+    COLUMN(role) : Integer <<0=user, 1=admin>>
+    COLUMN(created_at) : DateTime
+    COLUMN(updated_at) : DateTime
+}
+
+' Categories Table
+entity "Categories" as categories {
+    PRIMARY_KEY(category_id) : ObjectId
+    --
+    COLUMN(name) : String <<unique>>
+    COLUMN(slug) : String <<unique>>
+    COLUMN(created_at) : DateTime
+    COLUMN(updated_at) : DateTime
+}
+
+' Products Table
+entity "Products" as products {
+    PRIMARY_KEY(product_id) : ObjectId
+    --
+    COLUMN(name) : String
+    COLUMN(slug) : String <<unique>>
+    COLUMN(description) : String
+    FOREIGN_KEY(category_id) : ObjectId
+    COLUMN(price) : Number
+    COLUMN(quantity) : Integer
+    COLUMN(photo) : Buffer <<binary>>
+    COLUMN(shipping) : Boolean
+    COLUMN(keywords) : Array<String> <<for Jaccard>>
+    COLUMN(created_at) : DateTime
+    COLUMN(updated_at) : DateTime
+}
+
+' Orders Table
+entity "Orders" as orders {
+    PRIMARY_KEY(order_id) : ObjectId
+    --
+    FOREIGN_KEY(buyer_id) : ObjectId
+    COLUMN(payment) : Object {
+        COLUMN(  success) : Boolean
+        COLUMN(  transaction_id) : String
+        COLUMN(  amount) : Number
+    }
+    COLUMN(status) : Enum
+    COLUMN(  ) : <<Not Process, Processing,>>
+    COLUMN(  ) : <<Shipped, deliverd, cancel>>
+    COLUMN(created_at) : DateTime
+    COLUMN(updated_at) : DateTime
+}
+
+' OrderLine Junction Table (Many-to-Many between Orders and Products)
+entity "OrderLine" as order_line {
+    PRIMARY_KEY(order_line_id) : ObjectId
+    --
+    FOREIGN_KEY(order_id) : ObjectId
+    FOREIGN_KEY(product_id) : ObjectId
+    COLUMN(quantity) : Integer
+    COLUMN(price_at_purchase) : Number
+}
+
+' Relationships
+users ||--o{ orders : "places"
+categories ||--o{ products : "contains"
+orders ||--o{ order_line : "has"
+products ||--o{ order_line : "included in"
+
+' Notes
+note right of products
+  **Jaccard Algorithm**
+  The 'keywords' array is used to
+  calculate product similarity using
+  Jaccard similarity coefficient:
+
+  J(A,B) = |A ∩ B| / |A ∪ B|
+
+  Used for "Related Products"
+  recommendations on product pages.
+end note
+
+note bottom of order_line
+  **Junction Table**
+  Resolves many-to-many relationship:
+  - One order can contain multiple products
+  - One product can be in multiple orders
+
+  Stores quantity and price at time of purchase
+  to maintain historical pricing accuracy.
+end note
+
+note left of users
+  **Authentication**
+  - Password is hashed using bcrypt
+  - JWT tokens for session management
+  - 'answer' field for password recovery
+  - role: 0 (customer), 1 (admin)
+end note
+
+legend right
+  |= Symbol |= Meaning |
+  | <&key> (gold) | Primary Key |
+  | <&key> (gray) | Foreign Key |
+  | <&media-record> | Regular Column |
+
+  **Cardinality:**
+  ||--o{ : One-to-Many
+  }o--o{ : Many-to-Many (via junction)
+endlegend
+
+@enduml

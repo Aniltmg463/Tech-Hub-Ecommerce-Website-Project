@@ -1,0 +1,24 @@
+@startuml CLZ-MERO Object Diagram
+
+' Object instances
+object "john : User" as user1 {
+  name = "John Doe"
+  email = "john@example.com"
+  role = 0
+}
+
+object "laptop : Product" as prod1 {
+  name = "Laptop"
+  price = 999.99
+  quantity = 10
+}
+
+object "electronics : Category" as cat1 {
+  name = "Electronics"
+  slug = "electronics"
+}
+
+' Relationships
+prod1 --> cat1 : belongs to
+
+@enduml

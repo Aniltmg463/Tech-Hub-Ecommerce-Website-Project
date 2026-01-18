@@ -1,0 +1,397 @@
+@startuml System_Context_Diagram
+
+title TechHub E-Commerce - System Context Diagram
+
+!define RECTANGLE rectangle
+
+skinparam rectangle {
+    BackgroundColor<< system >> LightBlue
+    BackgroundColor<< external >> LightYellow
+    BorderColor Black
+}
+
+actor "Customer" as customer
+actor "Admin" as admin
+
+RECTANGLE "TechHub E-Commerce\nSystem" << system >> as system {
+}
+
+RECTANGLE "Braintree\nPayment Gateway" << external >> as braintree
+RECTANGLE "Email Service\n(SMTP)" << external >> as email
+RECTANGLE "MongoDB Atlas\nDatabase" << external >> as mongodb
+RECTANGLE "Web Browser" << external >> as browser
+
+customer --> system : Browse products\nPlace orders\nTrack shipments
+admin --> system : Manage products\nManage categories\nManage orders\nManage users
+
+system --> braintree : Process payments\nGenerate tokens
+braintree --> system : Payment confirmation\nTransaction ID
+
+system --> email : Send order confirmations\nSend shipping updates\nSend notifications
+email --> customer : Email notifications
+email --> admin : Admin alerts
+
+system --> mongodb : Store/retrieve data
+mongodb --> system : Data persistence
+
+customer --> browser : Access application
+browser --> system : HTTP/HTTPS requests
+system --> browser : Web pages\nJSON responses
+
+note right of system
+  **Core System Responsibilities:**
+  • Product catalog management
+  • User authentication & authorization
+  • Shopping cart & checkout
+  • Order processing & tracking
+  • Payment integration
+  • Inventory management
+  • Product recommendations (Jaccard)
+  • Admin dashboard
+end note
+
+note bottom of braintree
+  **External Payment Service**
+  • PCI DSS compliant
+  • Handles credit card processing
+  • No sensitive data stored internally
+  • Token-based transactions
+end note
+
+@enduml
+
+@startuml High_Level_Architecture
+
+title TechHub E-Commerce - High-Level System Architecture
+
+package "Presentation Layer" {
+    [React Frontend] as frontend
+    [React Router] as router
+    [UI Components] as components
+    [Context Providers] as context
+}
+
+package "API Layer" {
+    [Express Server] as express
+    [REST API] as api
+    [Middleware Stack] as middleware
+}
+
+package "Business Logic Layer" {
+    [Controllers] as controllers
+    [Services] as services
+    [Helpers] as helpers
+}
+
+package "Data Access Layer" {
+    [Mongoose ODM] as mongoose
+    [Model Schemas] as models
+}
+
+package "External Services" {
+    [Braintree SDK] as braintree
+    [Email Service] as smtp
+}
+
+database "MongoDB Atlas" as db
+
+' Presentation Layer connections
+frontend --> router
+frontend --> components
+frontend --> context
+
+' API connections
+context --> api : HTTP/REST
+router --> api : Route requests
+api --> middleware
+middleware --> express
+
+' Business Logic connections
+express --> controllers
+controllers --> services
+controllers --> helpers
+services --> helpers
+
+' Data Access connections
+controllers --> mongoose
+mongoose --> models
+models --> db : CRUD Operations
+
+' External Service connections
+controllers --> braintree : Payment processing
+controllers --> smtp : Email sending
+
+note right of frontend
+  **Technology:**
+  • React 18.3
+  • Bootstrap 5
+  • Ant Design
+  • Axios
+end note
+
+note right of express
+  **Technology:**
+  • Node.js
+  • Express.js
+  • JWT
+  • Bcrypt
+  • Formidable
+end note
+
+note right of db
+  **Technology:**
+  • MongoDB Atlas
+  • Cloud database
+  • Replica sets
+  • Automatic backups
+end note
+
+@enduml
+
+@startuml Three_Tier_Architecture
+
+title TechHub E-Commerce - Three-Tier Architecture
+
+package "Tier 1: Presentation Layer\n(Client-Side)" #LightCyan {
+    node "Web Browser" {
+        [React Application] as react
+        [Bootstrap UI] as ui
+        [Local Storage] as storage
+    }
+}
+
+package "Tier 2: Application Layer\n(Server-Side)" #LightYellow {
+    node "Express Server" {
+        [API Routes] as routes
+        [Controllers] as controllers
+        [Business Logic] as logic
+        [Authentication] as auth
+        [Jaccard Algorithm] as jaccard
+    }
+}
+
+package "Tier 3: Data Layer\n(Database)" #LightGreen {
+    database "MongoDB Atlas" as db {
+        [Users Collection]
+        [Products Collection]
+        [Categories Collection]
+        [Orders Collection]
+    }
+}
+
+cloud "External Services" #LightPink {
+    [Braintree Gateway]
+    [Email SMTP]
+}
+
+' Connections
+react --> storage : State persistence
+react --> routes : HTTP REST API\n(Port 8080)
+routes --> controllers
+controllers --> logic
+controllers --> auth
+logic --> jaccard
+controllers --> db : Mongoose ODM
+controllers --> [Braintree Gateway] : Payment API
+controllers --> [Email SMTP] : Send emails
+
+note bottom of react
+  **Tier 1 Responsibilities:**
+  • User interface rendering
+  • User input handling
+  • Client-side validation
+  • State management (Context API)
+  • Session storage (localStorage)
+
+  **Technology Stack:**
+  • React 18.3
+  • React Router 6.29
+  • Axios
+  • Bootstrap 5.3
+  • Ant Design
+end note
+
+note bottom of controllers
+  **Tier 2 Responsibilities:**
+  • Business logic execution
+  • API endpoint handling
+  • Authentication & authorization
+  • Data validation
+  • Integration with external services
+  • Product recommendations (Jaccard)
+
+  **Technology Stack:**
+  • Node.js (ES6 modules)
+  • Express.js
+  • JWT (jsonwebtoken)
+  • Bcrypt
+  • Express Formidable
+  • Morgan logger
+end note
+
+note bottom of db
+  **Tier 3 Responsibilities:**
+  • Data persistence
+  • Data integrity
+  • Query optimization
+  • Indexing
+  • Backup & recovery
+
+  **Technology Stack:**
+  • MongoDB Atlas (Cloud)
+  • Mongoose 7.x
+  • Automatic replication
+  • Point-in-time recovery
+end note
+
+@enduml
+
+@startuml Data_Flow_Architecture
+
+title TechHub E-Commerce - Data Flow Architecture
+
+!define RECTANGLE rectangle
+
+RECTANGLE "User Actions" as user #LightBlue
+RECTANGLE "Frontend\n(React)" as frontend #LightCyan
+RECTANGLE "API Gateway\n(Express)" as api #LightYellow
+RECTANGLE "Business Logic\n(Controllers)" as logic #LightGreen
+RECTANGLE "Database\n(MongoDB)" as db #LightPink
+RECTANGLE "External\nServices" as external #LightGray
+
+user -down-> frontend : User interactions
+frontend -down-> api : HTTP requests\n(JSON payload)
+api -down-> logic : Parsed requests
+logic -down-> db : Queries\n(CRUD operations)
+db -up-> logic : Query results
+logic -down-> external : Service calls
+external -up-> logic : Service responses
+logic -up-> api : Processed data
+api -up-> frontend : JSON responses
+frontend -up-> user : UI updates
+
+note right of frontend
+  **Request Flow:**
+  1. User action (click, submit)
+  2. Axios HTTP request
+  3. JWT token attached
+  4. Data serialization (JSON)
+end note
+
+note right of api
+  **Middleware Pipeline:**
+  1. CORS handling
+  2. JSON parsing
+  3. JWT verification
+  4. File upload parsing
+  5. Route to controller
+end note
+
+note right of logic
+  **Processing:**
+  1. Input validation
+  2. Business rules
+  3. Data transformation
+  4. Database operations
+  5. Response formatting
+end note
+
+note right of db
+  **Data Operations:**
+  • CREATE: Insert new documents
+  • READ: Query collections
+  • UPDATE: Modify documents
+  • DELETE: Remove documents
+  • AGGREGATE: Complex queries
+end note
+
+@enduml
+
+@startuml Security_Architecture
+
+title TechHub E-Commerce - Security Architecture
+
+package "Client-Side Security" {
+    [Input Validation] as clientValidation
+    [XSS Prevention] as xss
+    [HTTPS Only] as https
+    [JWT Storage] as jwtStorage
+}
+
+package "Network Security" {
+    [CORS Policy] as cors
+    [SSL/TLS] as ssl
+    [Rate Limiting] as rateLimiting
+}
+
+package "Server-Side Security" {
+    [JWT Verification] as jwtVerify
+    [Role-Based Access] as rbac
+    [Input Sanitization] as sanitization
+    [SQL Injection Prevention] as sqlPrevention
+    [Password Hashing] as passwordHash
+}
+
+package "Data Security" {
+    [Encryption at Rest] as encryptRest
+    [Encryption in Transit] as encryptTransit
+    [Access Control] as dbAccess
+    [Audit Logging] as logging
+}
+
+actor User
+actor Attacker
+
+User --> clientValidation : Submit data
+clientValidation --> https
+https --> ssl
+ssl --> cors
+cors --> jwtVerify
+jwtVerify --> rbac
+rbac --> sanitization
+sanitization --> sqlPrevention
+sqlPrevention --> passwordHash
+passwordHash --> encryptRest
+
+Attacker -[#red]-> xss : <span style="color:red">XSS Attack</span>
+xss -[#green]-> clientValidation : <span style="color:green">Blocked</span>
+
+Attacker -[#red]-> rateLimiting : <span style="color:red">Brute Force</span>
+rateLimiting -[#green]-> jwtVerify : <span style="color:green">Rate Limited</span>
+
+Attacker -[#red]-> sqlPrevention : <span style="color:red">Injection Attack</span>
+sqlPrevention -[#green]-> encryptRest : <span style="color:green">Prevented</span>
+
+note right of clientValidation
+  **Client-Side Defenses:**
+  • React escapes JSX by default
+  • Form validation before submission
+  • HTTPS enforced
+  • Sensitive data not in localStorage
+end note
+
+note right of jwtVerify
+  **JWT Security:**
+  • Signed with secret key
+  • Expiration time enforced
+  • Verified on each request
+  • Role embedded in payload
+end note
+
+note right of passwordHash
+  **Password Security:**
+  • Bcrypt hashing (10 rounds)
+  • Salt automatically generated
+  • One-way encryption
+  • Never stored in plain text
+end note
+
+note right of encryptRest
+  **Database Security:**
+  • MongoDB encryption at rest
+  • Network encryption (TLS)
+  • IP whitelisting
+  • Database user authentication
+end note
+
+@enduml

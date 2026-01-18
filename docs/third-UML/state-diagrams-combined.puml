@@ -1,0 +1,310 @@
+@startuml Order_State_Diagram
+
+title TechHub E-Commerce - Order Lifecycle (State Diagram)
+
+skinparam state {
+    BackgroundColor LightYellow
+    BorderColor Black
+    ArrowColor Black
+}
+
+[*] --> Created : User places order
+
+state Created {
+    Created : Entry: Create order record
+    Created : Entry: Reserve product inventory
+    Created : Entry: Process payment
+    Created : Do: Validate order items
+    Created : Do: Check stock availability
+}
+
+Created --> NotProcess : Payment successful
+Created --> PaymentFailed : Payment declined
+
+state PaymentFailed {
+    PaymentFailed : Entry: Log payment failure
+    PaymentFailed : Entry: Release reserved inventory
+    PaymentFailed : Do: Notify user
+}
+
+PaymentFailed --> [*] : Order cancelled
+
+state NotProcess {
+    NotProcess : Entry: Notify customer
+    NotProcess : Entry: Notify warehouse
+    NotProcess : Do: Wait for admin action
+    NotProcess : Exit: Assign to fulfillment
+}
+
+NotProcess --> Processing : Admin confirms order
+NotProcess --> Cancelled : Admin rejects / User cancels
+
+state Processing {
+    Processing : Entry: Update inventory
+    Processing : Entry: Generate packing slip
+    Processing : Do: Prepare items
+    Processing : Do: Package order
+    Processing : Exit: Generate shipping label
+}
+
+Processing --> Shipped : Order dispatched
+Processing --> Cancelled : Insufficient stock / Error
+
+state Shipped {
+    Shipped : Entry: Update tracking info
+    Shipped : Entry: Send tracking to customer
+    Shipped : Do: Track shipment
+    Shipped : Exit: Confirm delivery
+}
+
+Shipped --> Delivered : Customer receives order
+Shipped --> Cancelled : Shipment returned / Lost
+
+state Delivered {
+    Delivered : Entry: Update order status
+    Delivered : Entry: Request feedback
+    Delivered : Do: Monitor for returns
+    Delivered : Exit: Close order
+}
+
+Delivered --> [*] : Order complete (30 days)
+
+state Cancelled {
+    Cancelled : Entry: Restore inventory
+    Cancelled : Entry: Process refund (if paid)
+    Cancelled : Entry: Notify customer
+    Cancelled : Do: Log cancellation reason
+}
+
+Cancelled --> [*] : Order archived
+
+note right of Created
+  **Initial State**
+  Order created by user
+  during checkout process.
+  Payment is processed here.
+end note
+
+note right of NotProcess
+  **Awaiting Processing**
+  Order confirmed but not
+  yet started preparation.
+  Admin can review before
+  fulfillment.
+end note
+
+note right of Processing
+  **Active Fulfillment**
+  Warehouse is preparing
+  the order for shipment.
+  Inventory is decremented.
+end note
+
+note right of Shipped
+  **In Transit**
+  Order dispatched to
+  shipping carrier.
+  Customer can track progress.
+end note
+
+note right of Delivered
+  **Final State**
+  Customer has received
+  the order successfully.
+  Can initiate return if needed.
+end note
+
+note bottom of Cancelled
+  **Terminal State**
+  Order cancelled at any stage.
+  Inventory restored.
+  Refund processed if applicable.
+end note
+
+@enduml
+
+@startuml User_Authentication_State_Diagram
+
+title TechHub E-Commerce - User Authentication States
+
+skinparam state {
+    BackgroundColor LightCyan
+    BorderColor DarkBlue
+}
+
+[*] --> Anonymous
+
+state Anonymous {
+    Anonymous : User not logged in
+    Anonymous : No JWT token
+    Anonymous : Limited access
+}
+
+Anonymous --> Authenticating : Login attempt
+Anonymous --> Registering : Sign up
+
+state Registering {
+    Registering : Entry: Validate input
+    Registering : Do: Hash password
+    Registering : Do: Check email uniqueness
+    Registering : Exit: Create user record
+}
+
+Registering --> Authenticated : Registration successful
+Registering --> Anonymous : Registration failed
+
+state Authenticating {
+    Authenticating : Entry: Validate credentials
+    Authenticating : Do: Compare password hash
+    Authenticating : Do: Generate JWT token
+}
+
+Authenticating --> Authenticated : Login successful
+Authenticating --> Anonymous : Login failed
+
+state Authenticated {
+    Authenticated : User logged in
+    Authenticated : JWT token valid
+    Authenticated : Full access granted
+}
+
+state Authenticated {
+    [*] --> RegularUser
+
+    state RegularUser {
+        RegularUser : role = 0
+        RegularUser : Can browse products
+        RegularUser : Can place orders
+        RegularUser : Can manage profile
+    }
+
+    state AdminUser {
+        AdminUser : role = 1
+        AdminUser : All user privileges
+        AdminUser : Can manage products
+        AdminUser : Can manage categories
+        AdminUser : Can manage users
+        AdminUser : Can manage orders
+    }
+
+    RegularUser --> AdminUser : Promoted to admin
+}
+
+Authenticated --> SessionExpired : Token expires
+Authenticated --> Anonymous : User logs out
+
+state SessionExpired {
+    SessionExpired : Entry: Clear token
+    SessionExpired : Entry: Redirect to login
+    SessionExpired : Do: Show session timeout message
+}
+
+SessionExpired --> Anonymous : Auto logout
+
+note right of Anonymous
+  **Unauthenticated State**
+  - Can view products
+  - Can search
+  - Cannot add to cart
+  - Cannot checkout
+end note
+
+note right of Authenticated
+  **Authenticated State**
+  Two sub-states based on role:
+  - Regular User (role = 0)
+  - Admin User (role = 1)
+
+  JWT token stored in localStorage
+  and sent with each API request.
+end note
+
+note bottom of SessionExpired
+  **Session Management**
+  JWT tokens expire after
+  configured time period.
+  User must re-authenticate.
+end note
+
+@enduml
+
+@startuml Product_Inventory_State_Diagram
+
+title TechHub E-Commerce - Product Inventory States
+
+skinparam state {
+    BackgroundColor LightGreen
+    BorderColor DarkGreen
+}
+
+[*] --> Created
+
+state Created {
+    Created : Product created by admin
+    Created : Quantity = 0
+    Created : Not available for purchase
+}
+
+Created --> InStock : Inventory added [quantity > 0]
+
+state InStock {
+    InStock : Entry: Update availability
+    InStock : Quantity > 0
+    InStock : Available for purchase
+    InStock : Do: Display to customers
+}
+
+InStock --> LowStock : Quantity <= reorder level [quantity <= 10]
+InStock --> OutOfStock : Last item sold [quantity = 0]
+
+state LowStock {
+    LowStock : Entry: Notify admin
+    LowStock : 0 < Quantity <= 10
+    LowStock : Still available
+    LowStock : Do: Show "Only X left" warning
+}
+
+LowStock --> InStock : Stock replenished [quantity > 10]
+LowStock --> OutOfStock : Sold out [quantity = 0]
+
+state OutOfStock {
+    OutOfStock : Entry: Hide from listings
+    OutOfStock : Entry: Notify admin
+    OutOfStock : Quantity = 0
+    OutOfStock : Not available for purchase
+    OutOfStock : Do: Show "Out of Stock" message
+}
+
+OutOfStock --> InStock : Stock replenished [quantity > 0]
+OutOfStock --> Discontinued : Admin discontinues product
+
+state Discontinued {
+    Discontinued : Entry: Archive product
+    Discontinued : Product no longer sold
+    Discontinued : Historical data retained
+}
+
+Discontinued --> [*] : Product removed
+
+note right of InStock
+  **Available State**
+  Product is in stock and
+  can be purchased.
+  Displayed in catalog.
+end note
+
+note right of LowStock
+  **Warning State**
+  Limited quantity remaining.
+  May trigger reorder process.
+  Shows urgency to customers.
+end note
+
+note right of OutOfStock
+  **Unavailable State**
+  Temporarily out of stock.
+  Can be restocked.
+  Not displayed in active listings.
+end note
+
+@enduml

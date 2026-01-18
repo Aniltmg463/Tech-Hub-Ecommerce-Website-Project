@@ -1,0 +1,178 @@
+@startuml TechHub_Detailed_Architecture
+
+!define RECTANGLE class
+
+title TechHub E-Commerce - Detailed System Architecture\nwith Technology Stack and Data Flow
+
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+' Client Layer
+package "Client Layer (Browser)" {
+    node "React Application\n(localhost:3000)" as client {
+        [Pages & Components] as pages
+        [React Router] as router
+        [Axios Client] as axios
+
+        package "State Management" {
+            [Auth Context] as authContext
+            [Cart Context] as cartContext
+            [Search Context] as searchContext
+        }
+    }
+}
+
+' Server Layer
+package "Server Layer" {
+    node "Express Server\n(localhost:8080)" as server {
+        package "Routing Layer" {
+            [Auth Routes\n/api/v1/auth/*] as authRoutes
+            [Product Routes\n/api/v1/product/*] as productRoutes
+            [Category Routes\n/api/v1/category/*] as categoryRoutes
+        }
+
+        package "Middleware Layer" {
+            [CORS] as cors
+            [JWT Verify] as jwtMiddleware
+            [File Upload\n(Formidable)] as fileUpload
+        }
+
+        package "Controller Layer" {
+            [Auth Controller] as authController
+            [Product Controller] as productController
+            [Category Controller] as categoryController
+        }
+
+        package "Helper Layer" {
+            [Bcrypt\nPassword Hash] as bcrypt
+            [Jaccard Algorithm\nSimilarity] as jaccard
+        }
+    }
+}
+
+' Data Layer
+package "Data Layer" {
+    node "MongoDB Atlas" as db {
+        database "TechHub Database" {
+            [Users Collection] as usersDB
+            [Products Collection] as productsDB
+            [Categories Collection] as categoriesDB
+            [Orders Collection] as ordersDB
+        }
+    }
+
+    package "Mongoose ODM" {
+        [User Model] as userModel
+        [Product Model] as productModel
+        [Category Model] as categoryModel
+        [Order Model] as orderModel
+    }
+}
+
+' External Services
+package "External Services" {
+    cloud "Braintree" as braintree {
+        [Payment Token API] as braintreeToken
+        [Payment Processing] as braintreePayment
+    }
+}
+
+' Client to Server Connections
+pages --> router
+router --> axios : "Navigation"
+axios --> cors : "HTTP Requests\n+ JWT Token"
+
+authContext ..> axios : "JWT Storage"
+cartContext ..> pages : "Cart State"
+searchContext ..> pages : "Search State"
+
+' Server Routing
+cors --> authRoutes
+cors --> productRoutes
+cors --> categoryRoutes
+
+authRoutes --> jwtMiddleware : "Protected Routes"
+productRoutes --> jwtMiddleware : "Admin Routes"
+productRoutes --> fileUpload : "Image Upload"
+
+' Controller Processing
+authRoutes --> authController
+productRoutes --> productController
+categoryRoutes --> categoryController
+
+authController --> bcrypt : "Hash/Compare"
+productController --> jaccard : "Recommendations"
+
+' Database Access
+authController --> userModel
+authController --> orderModel
+productController --> productModel
+categoryController --> categoryModel
+
+userModel --> usersDB : "CRUD"
+productModel --> productsDB : "CRUD"
+categoryModel --> categoriesDB : "CRUD"
+orderModel --> ordersDB : "CRUD"
+
+' External Services
+productController --> braintreeToken : "Get Token"
+productController --> braintreePayment : "Process Payment"
+
+' Notes
+note right of client
+  **Frontend Technologies:**
+  • React 18.3.1
+  • React Router 6.29
+  • Axios HTTP Client
+  • Context API
+  • Bootstrap 5.3.3
+  • Ant Design
+  • React Toastify
+end note
+
+note right of server
+  **Backend Technologies:**
+  • Node.js (ES6 Modules)
+  • Express.js
+  • JWT (jsonwebtoken)
+  • Bcrypt
+  • Morgan Logger
+  • Express Formidable
+  • Slugify
+end note
+
+note bottom of db
+  **Database:**
+  • MongoDB Atlas (Cloud)
+  • Mongoose 7.x
+  • Schema Validation
+  • ObjectId References
+  • Binary Storage (Buffer)
+end note
+
+note right of jaccard
+  **Jaccard Algorithm**
+  Calculates product similarity
+  using keyword intersection:
+
+  J(A,B) = |A ∩ B| / |A ∪ B|
+
+  Returns related products
+  for recommendations
+end note
+
+legend bottom left
+  **Data Flow:**
+  → : Synchronous Request/Response
+  ..> : State/Data Sharing
+
+  **Authentication Flow:**
+  1. User logs in via Auth Routes
+  2. JWT token generated & returned
+  3. Token stored in Auth Context
+  4. Token sent with each request
+  5. JWT Middleware verifies token
+  6. Controller processes request
+endlegend
+
+@enduml

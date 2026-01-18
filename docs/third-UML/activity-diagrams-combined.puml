@@ -1,0 +1,508 @@
+@startuml Order_Processing_Activity
+
+title TechHub E-Commerce - Order Processing Workflow
+
+|Customer|
+start
+:Add products to cart;
+:Proceed to checkout;
+:Enter shipping address;
+
+|#LightBlue|System|
+:Validate cart items;
+:Check stock availability;
+
+if (All items in stock?) then (yes)
+    |Customer|
+    :Review order summary;
+    :Enter payment details;
+
+    |#LightGreen|Payment Gateway|
+    :Process payment;
+
+    if (Payment successful?) then (yes)
+        |#LightBlue|System|
+        :Create order record;
+        :Update inventory (decrement);
+        :Generate order ID;
+        :Send confirmation email;
+
+        |#Orange|Admin|
+        :Receive new order notification;
+        :Review order details;
+
+        if (Order approved?) then (yes)
+            :Mark as "Processing";
+            :Prepare items for shipment;
+            :Package order;
+            :Generate shipping label;
+            :Mark as "Shipped";
+            :Update tracking info;
+
+            |#LightBlue|System|
+            :Send tracking email to customer;
+
+            |#LightCoral|Shipping Carrier|
+            :Deliver order;
+
+            |#LightBlue|System|
+            if (Delivery confirmed?) then (yes)
+                :Mark as "Delivered";
+                :Request customer feedback;
+                stop
+            else (failed)
+                :Mark as "Cancelled";
+                :Process refund;
+                :Restore inventory;
+                :Notify customer;
+                stop
+            endif
+
+        else (no - rejected)
+            :Mark as "Cancelled";
+            :Process refund;
+            :Restore inventory;
+            :Send cancellation email;
+            stop
+        endif
+
+    else (no - failed)
+        |Customer|
+        :Show payment error;
+        :Retry or change payment method;
+        stop
+    endif
+
+else (no - out of stock)
+    |Customer|
+    :Show "Out of Stock" error;
+    :Remove unavailable items;
+    :Update cart;
+    stop
+endif
+
+@enduml
+
+@startuml User_Registration_Activity
+
+title TechHub E-Commerce - User Registration Process
+
+|Customer|
+start
+:Navigate to Register page;
+:Fill registration form;
+note right
+  Required fields:
+  - Name
+  - Email
+  - Password
+  - Phone
+  - Address
+  - Security Answer
+end note
+
+:Submit form;
+
+|#LightBlue|Frontend Validation|
+:Validate email format;
+:Check password strength;
+:Verify all required fields;
+
+if (Validation passed?) then (yes)
+    |#LightBlue|Backend System|
+    :Receive registration request;
+    :Check email in database;
+
+    if (Email already exists?) then (yes)
+        :Return error message;
+        |Customer|
+        :Show "Email already registered";
+        :Suggest login or password reset;
+        stop
+    else (no)
+        |#LightBlue|Backend System|
+        :Hash password (Bcrypt);
+        note right
+          Bcrypt with 10 salt rounds
+          One-way encryption
+        end note
+
+        :Create user record;
+        :Save to database;
+        :Send welcome email;
+
+        |Customer|
+        :Show success message;
+        :Redirect to login page;
+        :Login with new credentials;
+        stop
+    endif
+
+else (no)
+    |Customer|
+    :Show validation errors;
+    :Correct form data;
+    :Resubmit;
+    stop
+endif
+
+@enduml
+
+@startuml Product_Search_Filter_Activity
+
+title TechHub E-Commerce - Product Search and Filter Process
+
+|Customer|
+start
+
+fork
+    :Enter search keyword;
+fork again
+    :Select category filter;
+fork again
+    :Select price range;
+end fork
+
+|#LightBlue|System|
+:Receive search criteria;
+
+partition "Build Query" {
+    if (Keyword provided?) then (yes)
+        :Add keyword search
+(regex on name/description);
+    endif
+
+    if (Category selected?) then (yes)
+        :Add category filter;
+    endif
+
+    if (Price range selected?) then (yes)
+        :Add price range filter;
+    endif
+}
+
+:Execute database query;
+:Fetch matching products;
+
+if (Results found?) then (yes)
+    :Sort products by relevance;
+    :Apply pagination (12 per page);
+    :Exclude photo data
+(for performance);
+
+    |Customer|
+    :Display product grid;
+
+    fork
+        :Click on product;
+        :View product details;
+
+        |#LightBlue|System|
+        :Load full product data;
+        :Fetch related products
+(Jaccard algorithm);
+        :Display product page;
+        stop
+
+    fork again
+        :Adjust filters;
+        :Refresh results;
+        detach
+
+    fork again
+        :Load more products;
+        :Fetch next page;
+        detach
+
+    fork again
+        :Add product to cart;
+        |#LightBlue|System|
+        :Update cart context;
+        :Save to localStorage;
+        :Update cart badge;
+        stop
+    end fork
+
+else (no)
+    |Customer|
+    :Show "No products found";
+    :Suggest alternative search;
+    stop
+endif
+
+@enduml
+
+@startuml Admin_Product_Creation_Activity
+
+title TechHub E-Commerce - Admin Product Creation Process
+
+|Admin|
+start
+:Navigate to "Create Product";
+
+|#LightBlue|System|
+:Check admin authentication;
+
+if (Logged in as admin?) then (yes)
+    |Admin|
+    :Fill product form;
+    note right
+      Fields:
+      - Name
+      - Description
+      - Price
+      - Quantity
+      - Category
+      - Shipping (Yes/No)
+      - Photo (upload)
+    end note
+
+    :Upload product photo;
+
+    |#LightBlue|Frontend Validation|
+    :Validate required fields;
+    :Check price > 0;
+    :Check quantity >= 0;
+    :Validate photo size (<= 1MB);
+    :Validate photo type (image/*);
+
+    if (Validation passed?) then (yes)
+        :Submit form;
+
+        |#LightBlue|Backend System|
+        :Verify JWT token;
+        :Check admin role;
+
+        if (Is admin?) then (yes)
+            :Parse FormData (Formidable);
+            :Extract fields and photo;
+
+            partition "Process Product Data" {
+                :Generate slug from name;
+                :Read photo to Buffer;
+                :Generate keywords
+(Jaccard helper);
+                note right
+                  Keyword Generation:
+                  1. Tokenize name + description
+                  2. Remove stop words
+                  3. Extract top 15 keywords
+                end note
+            }
+
+            :Validate category exists;
+
+            if (Category valid?) then (yes)
+                :Create product object;
+                :Save to database;
+                :Return success response;
+
+                |Admin|
+                :Show success message;
+                :Clear form;
+
+                fork
+                    :Create another product;
+                    detach
+                fork again
+                    :View product list;
+                    stop
+                end fork
+
+            else (no)
+                :Return error;
+                |Admin|
+                :Show "Invalid category";
+                :Select valid category;
+                stop
+            endif
+
+        else (no)
+            :Return 403 Forbidden;
+            |Admin|
+            :Show "Unauthorized" error;
+            :Redirect to login;
+            stop
+        endif
+
+    else (no)
+        |Admin|
+        :Show validation errors;
+        :Correct form data;
+        stop
+    endif
+
+else (no)
+    |Admin|
+    :Redirect to login page;
+    stop
+endif
+
+@enduml
+
+@startuml Order_Status_Update_Activity
+
+title TechHub E-Commerce - Order Status Update Process
+
+|Admin|
+start
+:Navigate to "Manage Orders";
+
+|#LightBlue|System|
+:Fetch all orders;
+:Display orders table;
+
+|Admin|
+:Select an order;
+:View order details;
+
+partition "Order Information" {
+    :Customer info;
+    :Order items;
+    :Payment status;
+    :Current status;
+    :Timestamps;
+}
+
+:Select new status from dropdown;
+note right
+  Status Options:
+  - Not Process
+  - Processing
+  - Shipped
+  - Delivered
+  - Cancelled
+end note
+
+|#LightBlue|System|
+:Validate status transition;
+
+if (Valid transition?) then (yes)
+    note right
+      Valid Transitions:
+      Not Process → Processing, Cancelled
+      Processing → Shipped, Cancelled
+      Shipped → Delivered, Cancelled
+      Delivered → (no change)
+      Cancelled → (no change)
+    end note
+
+    if (New status = "Cancelled"?) then (yes)
+        :Restore product inventory;
+        :Process refund (if paid);
+        :Send cancellation email;
+    elseif (New status = "Shipped"?) then (yes)
+        :Update tracking information;
+        :Send shipping confirmation;
+    elseif (New status = "Delivered"?) then (yes)
+        :Send delivery confirmation;
+        :Request customer feedback;
+    endif
+
+    :Update order status in DB;
+    :Log status change;
+    :Timestamp update;
+
+    |Admin|
+    :Show success message;
+    :Updated status displayed;
+
+    fork
+        :Update another order;
+        detach
+    fork again
+        :View order analytics;
+        stop
+    end fork
+
+else (no)
+    |Admin|
+    :Show "Invalid transition" error;
+    :Keep current status;
+    stop
+endif
+
+@enduml
+
+@startuml Product_Recommendation_Activity
+
+title TechHub E-Commerce - Product Recommendation Generation (Jaccard)
+
+|System|
+start
+:User views product page;
+:Load product details;
+
+partition "Fetch Related Products" {
+    :Get current product ID (pid);
+    :Get current category ID (cid);
+    :Fetch current product from DB;
+    :Extract keywords array;
+    note right
+      Keywords example:
+      ["laptop", "gaming",
+       "rgb", "high-performance"]
+    end note
+
+    :Fetch all products in category;
+    :Exclude current product;
+}
+
+partition "Calculate Similarity" #LightGreen {
+    :Initialize empty results array;
+
+    repeat
+        :Get next product from list;
+        :Extract comparison keywords;
+
+        partition "Jaccard Algorithm" {
+            :Tokenize keywords;
+            :Calculate intersection (A ∩ B);
+            note right
+              Intersection:
+              Common keywords
+              between two products
+            end note
+
+            :Calculate union (A ∪ B);
+            note right
+              Union:
+              All unique keywords
+              from both products
+            end note
+
+            :Compute J(A,B) = |A ∩ B| / |A ∪ B|;
+            note right
+              Jaccard Coefficient:
+              Score from 0.0 to 1.0
+              1.0 = identical
+              0.0 = no similarity
+            end note
+        }
+
+        :Store {product, score};
+
+    repeat while (More products?) is (yes)
+    ->no;
+}
+
+:Sort by similarity score (DESC);
+:Take top 3 products;
+:Exclude photo data
+(reduce payload);
+:Return related products;
+
+|Customer|
+:Display "Related Products" section;
+:Show 3 similar products;
+
+if (Customer clicks on
+related product?) then (yes)
+    :Navigate to new product page;
+    :Repeat recommendation process;
+    detach
+else (no)
+    stop
+endif
+
+@enduml

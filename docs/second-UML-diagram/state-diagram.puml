@@ -1,0 +1,16 @@
+@startuml CLZ-MERO Order State Diagram
+
+[*] --> NotProcess : Order Created
+
+NotProcess --> Processing : Admin Confirms
+Processing --> Shipped : Admin Ships Order
+Shipped --> Delivered : Delivery Completed
+
+NotProcess --> Cancelled : Order Cancelled
+Processing --> Cancelled : Order Cancelled
+Shipped --> Cancelled : Order Cancelled
+
+Delivered --> [*]
+Cancelled --> [*]
+
+@enduml
